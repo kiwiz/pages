@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hanzi Writer</title>
+  <script type="application/javascript" src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.2/dist/hanzi-writer.min.js"></script>
+  <style>
+    body {
+      margin: 0px;
+      text-align: center;
+    }
+    input, button {
+      text-align: center;
+      width: 28%;
+      font-size: 2em;
+      padding: 1px 3px;
+    }
+    input.nav {
+      width: 10%;
+    }
+    button.nav {
+      margin-top: 6px;
+      width: 28%;
+    }
+  </style>
+</head>
+<body>
+  <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" id="character">
+  </svg>
+  <div>
+    <input id="input" />
+    <button id="play">Play</button>
+    <button id="quiz">Quiz</button>
+    <button id="prev" class="nav">&lt;</button>
+    <input id="index" class="nav" disabled />
+    <button id="next" class="nav">&gt;</button>
+  </div>
+</body>
+<script>
+const CHAR_RE = /\p{Script=Han}/ug
+
+document.addEventListener('DOMContentLoaded', () => {
+  let chrs = ['字']
+  let idx = 0
+
+  // Populate chars from hash
+  const hash = document.location.hash
+  if(hash.length > 0) {
+      const hsh = decodeURIComponent(hash.substr(1))
+      const new_chrs = hsh.match(CHAR_RE)
+      if(new_chrs.length) {
+          chrs = new_chrs
+        }
+  }
+  const input = document.getElementById('input')
+  input.value = chrs.join('')
+  const index = document.getElementById('index')
+
+  // Initialize canvas
+  const size = Math.min(
+    document.documentElement.clientWidth,
+    document.documentElement.clientHeight,
+  )
+  const character = document.getElementById('character')
+  character.width = character.height = size
+
+  // Draw grid
+  const lines = [
+      [0, 0, 0, 1],
+      [0, 0, 1, 0],
+      [1, 0, 1, 1],
+      [0, 1, 1, 1],
+      [0.5, 0, 0.5, 1],
+      [0, 0.5, 1, 0.5],
+  ]
+  for(let line of lines) {
+    const l = document.createElementNS("http://www.w3.org/2000/svg", "line")
+    l.setAttribute("x1", line[0] * size)
+    l.setAttribute("y1", line[1] * size)
+    l.setAttribute("x2", line[2] * size)
+    l.setAttribute("y2", line[3] * size)
+    l.setAttribute("stroke-width", 2)
+    l.setAttribute("stroke", "#eee")
+    character.appendChild(l)
+  }
+
+  // Initialize hanziwriter
+  const writer = HanziWriter.create('character', chrs[idx], {
+    width: size,
+    height: size,
+    padding: 0,
+    delayBetweenStrokes: 200,
+    showHintAfterMisses: 1,
+    outlineColor: '#ccc',
+    // radicalColor: '#168F16', // green
+  })
+
+  function setChar(delta) {
+    if(chrs.length === 0) {
+      return
+    }
+
+    idx = (idx + delta) % chrs.length
+
+    writer.setCharacter(chrs[idx])
+    writer.animateCharacter()
+    index.value = idx + 1
+  }
+
+  // Set up events
+  writer.animateCharacter()
+  document.getElementById('play').addEventListener('click', () => {
+    writer.animateCharacter()
+  })
+  document.getElementById('quiz').addEventListener('click', () => {
+    writer.quiz()
+  })
+  document.getElementById('prev').addEventListener('click', () => {
+    setChar(-1)
+  })
+  document.getElementById('next').addEventListener('click', () => {
+    setChar(1)
+  })
+  input.addEventListener('blur', function() {
+    const val = this.value
+    setChar(0)
+  })
+})
+</script>
+</html>
